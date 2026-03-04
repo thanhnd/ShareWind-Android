@@ -1,0 +1,57 @@
+---
+description: Security rules — token storage, data privacy, and safe coding practices
+globs: **/*.kt
+alwaysApply: false
+---
+
+# Security
+
+## Token Storage — EncryptedDataStore Only
+```kotlin
+// ✅ GOOD — encrypted with Android Keystore
+val encryptedPrefs = EncryptedSharedPreferences.create(...)
+
+// ❌ BAD — plaintext storage
+getSharedPreferences("prefs", MODE_PRIVATE).edit().putString("token", token)
+```
+Never store tokens in plain DataStore, SharedPreferences, or files.
+
+## Phone Number Privacy
+```kotlin
+// ❌ BAD — show phone before confirmation
+Text(text = ride.driverPhone)
+
+// ✅ GOOD — gate on confirmed status
+if (ride.status == RideStatus.CONFIRMED) {
+    Text(text = ride.driverPhone)
+    CallButton(phone = ride.driverPhone)
+}
+```
+The `driverPhone` / `userPhone` fields in domain models are nullable — the backend returns `null` before confirmation.
+
+## No PII in Logs
+```kotlin
+// ❌ BAD
+Log.d("Auth", "Login attempt for phone=$phone")
+
+// ✅ GOOD
+Log.d("Auth", "Login attempt for user=${userId.take(8)}...")
+```
+Never log full phone numbers, emails, passwords, or tokens in any build variant.
+
+## No Hardcoded Secrets
+```kotlin
+// ❌ BAD
+const val API_BASE_URL = "https://api.sharewind.vn"  // in code
+const val FCM_SERVER_KEY = "AAAA..."
+
+// ✅ GOOD — use BuildConfig or remote config
+val baseUrl = BuildConfig.API_BASE_URL
+```
+API base URLs and keys come from `buildConfigField` in `build.gradle.kts`, not source code.
+
+## google-services.json
+`google-services.json` is **never committed**. Each developer and CI environment provides their own copy. It is listed in `.gitignore`.
+
+## Certificate Pinning (production)
+Add OkHttp `CertificatePinner` for production builds targeting the ShareWind API domain.

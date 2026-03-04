@@ -1,0 +1,74 @@
+---
+description: Jetpack Compose UI patterns — state hoisting, composable design, and theming
+globs: **/ui/**/*.kt
+alwaysApply: false
+---
+
+# Jetpack Compose Patterns
+
+## State Hoisting
+Composables must be stateless — hoist state to the caller or ViewModel:
+```kotlin
+// ❌ BAD — state owned inside composable
+@Composable fun SearchBar() {
+    var query by remember { mutableStateOf("") }
+    ...
+}
+
+// ✅ GOOD — state hoisted
+@Composable fun SearchBar(query: String, onQueryChange: (String) -> Unit) { ... }
+```
+
+## Screen vs Component Split
+- `*Screen.kt` — connects to ViewModel, collects state, passes to content composable
+- `*Content.kt` / small composables — pure UI, no ViewModel dependency, fully previewable
+
+```kotlin
+@Composable
+fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    HomeContent(uiState = uiState, onRefresh = viewModel::refresh)
+}
+
+@Composable
+fun HomeContent(uiState: HomeUiState, onRefresh: () -> Unit) { ... }
+```
+
+## Loading / Error / Empty States
+Every screen that loads data must handle all four states:
+```kotlin
+when (uiState) {
+    is Loading -> LoadingIndicator()
+    is Success -> RideList(uiState.rides)
+    is Empty   -> EmptyState(message = "No rides available")
+    is Error   -> ErrorState(message = uiState.message, onRetry = onRefresh)
+}
+```
+
+## Offer Countdown Timer
+The 10-minute offer expiry timer must use `LaunchedEffect` + `rememberSaveable`:
+```kotlin
+LaunchedEffect(offer.expiresAt) {
+    while (remaining > 0) {
+        delay(1_000)
+        remaining = offer.expiresAt - Clock.System.now()
+    }
+    onExpired()
+}
+```
+
+## Preview Every Composable
+```kotlin
+@Preview(showBackground = true)
+@Composable
+fun RideCardPreview() = ShareWindTheme { RideCard(ride = previewRide) }
+```
+
+## Use Material 3 Tokens
+```kotlin
+// ❌ BAD — hardcoded color
+Text(color = Color(0xFF1A73E8))
+
+// ✅ GOOD
+Text(color = MaterialTheme.colorScheme.primary)
+```

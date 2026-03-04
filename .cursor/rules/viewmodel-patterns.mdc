@@ -1,0 +1,71 @@
+---
+description: ViewModel patterns — UiState, UiEvent, unidirectional data flow
+globs: **/*ViewModel.kt
+alwaysApply: false
+---
+
+# ViewModel Patterns
+
+## Standard Structure
+Every ViewModel follows the same shape:
+```kotlin
+@HiltViewModel
+class RideDetailViewModel @Inject constructor(
+    private val getRideDetailUseCase: GetRideDetailUseCase,
+    savedStateHandle: SavedStateHandle
+) : ViewModel() {
+
+    private val rideId: String = checkNotNull(savedStateHandle["rideId"])
+
+    private val _uiState = MutableStateFlow<RideDetailUiState>(RideDetailUiState.Loading)
+    val uiState: StateFlow<RideDetailUiState> = _uiState.asStateFlow()
+
+    // One-shot events (snackbars, navigation) via Channel
+    private val _events = Channel<RideDetailEvent>(Channel.BUFFERED)
+    val events: Flow<RideDetailEvent> = _events.receiveAsFlow()
+
+    init { loadRide() }
+
+    fun onAction(action: RideDetailAction) {
+        when (action) {
+            is RideDetailAction.Retry -> loadRide()
+            is RideDetailAction.Call  -> dialPhone(action.phone)
+        }
+    }
+}
+```
+
+## UiState — sealed class per screen
+```kotlin
+sealed class RideDetailUiState {
+    object Loading : RideDetailUiState()
+    data class Success(val ride: RideUiModel) : RideDetailUiState()
+    data class Error(val message: String) : RideDetailUiState()
+}
+```
+
+## UiEvent for one-shot side effects
+```kotlin
+sealed class RideDetailEvent {
+    data class DialPhone(val number: String) : RideDetailEvent()
+    data class ShowError(val message: String) : RideDetailEvent()
+}
+```
+
+## Error Handling in ViewModels
+```kotlin
+private fun loadRide() {
+    viewModelScope.launch {
+        _uiState.value = RideDetailUiState.Loading
+        getRideDetailUseCase(rideId)
+            .onSuccess { _uiState.value = RideDetailUiState.Success(it.toUiModel()) }
+            .onFailure { _uiState.value = RideDetailUiState.Error(it.localizedMessage ?: "Error") }
+    }
+}
+```
+
+## Collect State Safely in Compose
+```kotlin
+val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+```
+Always use `collectAsStateWithLifecycle` (not `collectAsState`) to respect lifecycle.

@@ -1,0 +1,61 @@
+---
+description: Data layer conventions — Retrofit, DataStore, repository pattern
+globs: **/data/**/*.kt
+alwaysApply: false
+---
+
+# Data Layer Conventions
+
+## Repository Returns Result<T>
+Repositories must catch all exceptions and wrap in `Result`:
+```kotlin
+override suspend fun getRideDetail(rideId: String): Result<Ride> = runCatching {
+    val dto = api.getRideDetail(rideId)
+    dto.toDomain()
+}
+```
+Never let a `HttpException` or `IOException` propagate to the domain layer.
+
+## DTO → Domain Mapping
+DTOs live in `data/remote/dto/`. Always map to domain models before returning from a repository:
+```kotlin
+// ✅ GOOD — domain model crosses the layer boundary
+fun RideDto.toDomain(): Ride = Ride(id = id, origin = origin, status = Status.from(status))
+
+// ❌ BAD — DTO leaking into domain/UI
+fun getRide(): RideDto  // don't do this
+```
+
+## Token Refresh Interceptor
+The `TokenRefreshInterceptor` handles 401 automatically. Never write token refresh logic in a ViewModel or use case:
+```kotlin
+// In OkHttp Interceptor — not in ViewModel
+if (response.code == 401) {
+    val newToken = runBlocking { authRepository.refreshToken() }
+    return chain.proceed(request.newBuilder()
+        .header("Authorization", "Bearer $newToken").build())
+}
+```
+
+## DataStore — Typed Preferences Only
+```kotlin
+// ✅ GOOD — typed keys
+val ACCESS_TOKEN = stringPreferencesKey("access_token")
+val USER_ROLE    = stringPreferencesKey("user_role")
+
+// ❌ BAD — raw string keys
+prefs.edit { putString("access_token", token) }  // SharedPreferences style
+```
+Sensitive values (access_token, refresh_token) must use **EncryptedDataStore** backed by Android Keystore.
+
+## API Service — suspend functions only
+```kotlin
+interface RideApiService {
+    @GET("rides/{id}")
+    suspend fun getRideDetail(@Path("id") rideId: String): RideDto
+
+    @POST("rides")
+    suspend fun createRide(@Body request: CreateRideRequest): RideDto
+}
+```
+No RxJava. No callbacks. Coroutines only.

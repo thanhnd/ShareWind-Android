@@ -1,0 +1,33 @@
+---
+description: ShareWind Android project context, architecture, and business rules
+alwaysApply: true
+---
+
+# ShareWind Android — Project Overview
+
+## Architecture
+Clean Architecture + MVVM. Three layers, strict dependency direction:
+```
+ui/ → domain/ → data/
+```
+- `ui/` — Jetpack Compose screens + ViewModels
+- `domain/` — pure Kotlin use cases, models, repository interfaces
+- `data/` — Retrofit, DataStore, repository implementations
+
+## Dependency Injection
+All dependencies injected via **Hilt**. No manual singletons except Hilt-managed `@Singleton` bindings.
+
+## Two App Modes (same APK)
+- **End-user mode** — browse driver rides, create requests, accept offers
+- **Driver mode** — browse EU requests, create rides, send offers, manage vehicles
+- Role is stored in DataStore; users with dual-role can toggle in-session
+
+## Critical Business Rules
+- Driver accounts start `pending` — UI must show a "waiting for approval" state
+- Offers expire in **10 minutes** — countdown must be shown in the offer UI
+- Phone numbers are only revealed **after confirmation** — never display before `confirmed` status
+- Free plan: EU 120 requests/month, Driver 30 rides/month — show quota in profile
+- FCM token must be re-registered on every login and on `onNewToken`
+
+## Tech Stack
+Kotlin · Jetpack Compose · Hilt · Retrofit + OkHttp · Coroutines + Flow · DataStore · FCM · Coil · Material 3

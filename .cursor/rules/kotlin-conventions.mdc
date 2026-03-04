@@ -1,0 +1,57 @@
+---
+description: Kotlin coding conventions for ShareWind Android
+globs: **/*.kt
+alwaysApply: false
+---
+
+# Kotlin Conventions
+
+## Immutability First
+```kotlin
+// ❌ BAD
+var rides = mutableListOf<Ride>()
+
+// ✅ GOOD — immutable state, replace on update
+val rides: List<Ride> = emptyList()
+```
+Prefer `val` over `var`. Use `data class` for models; never mutate them — copy instead.
+
+## Null Safety
+```kotlin
+// ❌ BAD — force unwrap
+val name = user!!.name
+
+// ✅ GOOD
+val name = user?.name ?: "Unknown"
+```
+Never use `!!` outside of tests. Use `?.let`, `?: return`, or `requireNotNull` with a message.
+
+## Sealed Classes for State & Events
+```kotlin
+sealed class UiState {
+    object Loading : UiState()
+    data class Success(val rides: List<Ride>) : UiState()
+    data class Error(val message: String) : UiState()
+}
+```
+
+## Coroutines
+- Use `viewModelScope` in ViewModels, `lifecycleScope` in Activity/Fragment
+- Never launch on `Dispatchers.Main` for IO — use `Dispatchers.IO` in the data layer
+- Use `Flow` for streams, `suspend` for one-shot operations
+
+## Extension Functions
+Use extension functions for reusable UI helpers and mappers:
+```kotlin
+fun Ride.toUiModel(): RideUiModel = RideUiModel(id = id, routeSummary = "$origin → $destination")
+```
+
+## No Magic Numbers
+```kotlin
+// ❌ BAD
+if (remainingQuota < 5) showWarning()
+
+// ✅ GOOD
+const val QUOTA_WARNING_THRESHOLD = 5
+if (remainingQuota < QUOTA_WARNING_THRESHOLD) showWarning()
+```
