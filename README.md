@@ -6,6 +6,18 @@ Built with **Kotlin** and **Jetpack Compose**, this app serves both **End-users*
 
 ---
 
+## Documentation
+
+| Doc | Description |
+|-----|-------------|
+| [BRD](https://github.com/lyhuynh323/ShareWind/blob/main/docs/BRD.md) | Business requirements |
+| [business-workflows](https://github.com/lyhuynh323/ShareWind/blob/main/docs/business-workflows.md) | User flows |
+| [ui-mockups](https://github.com/lyhuynh323/ShareWind/blob/main/docs/ui-mockups.md) | Design system, mobile & back-office UI specs |
+
+**Key flows (BRD v1.2):** End-user registers with phone (mandatory) + 6-digit OTP; login via phone + password after verification. Driver registration is a separate flow after login (upload driving license → pending → SA/Mod verify or auto-approve after 3 days).
+
+---
+
 ## Related Repositories
 
 | Repo | Stack |
@@ -17,15 +29,62 @@ Built with **Kotlin** and **Jetpack Compose**, this app serves both **End-users*
 
 ---
 
+## Design System
+
+Aligned with [docs/ui-mockups.md](https://github.com/lyhuynh323/ShareWind/blob/main/docs/ui-mockups.md). Style: **Modern Clean + light glassmorphism**.
+
+### Color Palette
+
+| Token | Hex | Usage |
+|-------|-----|-------|
+| Primary | `#00B4D8` | App header, buttons, active states |
+| Primary Hover | `#0096C7` | Pressed/hover states |
+| Primary Light | `#E0FBFC` | Tint backgrounds, active filter pills |
+| Secondary | `#0077B6` | Emphasized text, price display |
+| Accent | `#FFB703` | Rating stars, pending/highlight chips |
+| Success | `#2A9D8F` | Confirmed, completed, accept button |
+| Warning | `#E9C46A` | Expiring soon, pending |
+| Error | `#E76F51` | Cancelled, delete, lock |
+| Neutral 900 | `#212529` | Headings, primary text |
+| Neutral 600 | `#6C757D` | Body/secondary text |
+| Neutral 300 | `#DEE2E6` | Borders, dividers |
+| Neutral 100 | `#F8F9FA` | Card backgrounds, search bar |
+
+### Typography
+
+| Style | Size | Weight | Usage |
+|-------|------|--------|-------|
+| H1 | 24sp | Bold | Screen titles, banners |
+| H2 | 18sp | SemiBold | Section headers |
+| Body | 14sp | Regular | Default text |
+| Caption | 12sp | Regular | Timestamps, notes |
+| Button | 16sp | SemiBold | Button labels |
+
+### Components
+
+- **Cards:** Border radius `16dp`, soft shadow `0 4 12 rgba(0,0,0,0.05)`
+- **Buttons:** Border radius `12dp` (or pill `99dp` for filter chips)
+- **Bottom Nav:** Glassmorphism blur, active tab = Primary fill + caption
+- **Icons:** Material Symbols Rounded, stroke 1.5dp
+
+### Key UI Patterns
+
+- **Role Toggle:** Dropdown/pill in header `[ 👤 Passenger ▾ ]` → "Chuyển sang Driver Mode" (haptic feedback)
+- **Offer Popup:** Bottom sheet with 10-min countdown bar, Accept (Success) / Reject (Neutral) buttons, haptic + sound
+- **Ride Detail (Confirmed):** Hero section with avatar, phone reveal, prominent "Gọi Ngay" button (Success green)
+- **FAB:** 56dp, Primary gradient, "+" icon, shadow `0 8 16 rgba(0,180,216,0.3)`
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
 | Language | Kotlin |
-| UI Framework | Jetpack Compose |
+| UI Framework | Jetpack Compose + Material 3 |
 | Minimum SDK | Android 9 (API 28) |
 | Target SDK | Android 15 (API 35) |
-| Architecture | MVVM + Clean Architecture |
+| Architecture | Clean Architecture + MVVM |
 | DI | Hilt |
 | Networking | Retrofit + OkHttp |
 | Async | Kotlin Coroutines + Flow |
@@ -40,8 +99,8 @@ Built with **Kotlin** and **Jetpack Compose**, this app serves both **End-users*
 ## Features
 
 ### Authentication
-- Register / login via phone number or email
-- OTP verification (SMS)
+- Register / login via **phone number** (mandatory after OTP verification)
+- OTP verification (6-digit SMS)
 - Secure token storage with Android Keystore / EncryptedDataStore
 - Biometric authentication (fingerprint / face unlock)
 
@@ -64,8 +123,8 @@ Built with **Kotlin** and **Jetpack Compose**, this app serves both **End-users*
 
 ### Dual Role (Role Toggle)
 - Any End-user can apply to become a Driver by submitting their driving license and vehicle info
-- Account switches to **Driver Mode** once a Sys-admin approves the application
-- Toggle between End-user and Driver views within the same app session
+- Account status is **pending** until a Sys-admin approves — UI must show "waiting for approval" state
+- Account switches to **Driver Mode** once approved; toggle between End-user and Driver views within the same app session
 
 ---
 
@@ -90,14 +149,14 @@ ShareWind-Android/
 │   │   ├── main/
 │   │   │   ├── java/com/sharewind/app/
 │   │   │   │   ├── di/                 # Hilt dependency injection modules
-│   │   │   │   ├── data/
+│   │   │   │   ├── data/               # Retrofit, DataStore, repository implementations
 │   │   │   │   │   ├── remote/         # Retrofit API interfaces & DTOs
 │   │   │   │   │   ├── local/          # DataStore, local cache
 │   │   │   │   │   └── repository/     # Repository implementations
-│   │   │   │   ├── domain/
+│   │   │   │   ├── domain/             # Pure Kotlin use cases, models, repository interfaces
 │   │   │   │   │   ├── model/          # Domain models
 │   │   │   │   │   └── usecase/        # Business use cases
-│   │   │   │   ├── ui/
+│   │   │   │   ├── ui/                 # Jetpack Compose screens + ViewModels
 │   │   │   │   │   ├── auth/           # Login, Register, OTP screens
 │   │   │   │   │   ├── home/           # Ride feed (EU & Driver)
 │   │   │   │   │   ├── ride/           # Create request / Create ride
@@ -106,10 +165,11 @@ ShareWind-Android/
 │   │   │   │   │   ├── notifications/  # Notification list & detail
 │   │   │   │   │   └── profile/        # Account settings, role toggle
 │   │   │   │   ├── navigation/         # NavGraph, routes
+│   │   │   │   ├── theme/              # Color, Type, Shape, Theme (design system)
 │   │   │   │   └── MainActivity.kt
 │   │   │   ├── res/                    # Resources (strings, themes, icons)
 │   │   │   └── AndroidManifest.xml
-│   │   └── test/                       # Unit tests
+│   │   ├── test/                       # Unit tests
 │   │   └── androidTest/                # Instrumented tests
 │   ├── build.gradle.kts
 │   └── google-services.json            # Firebase config (not committed)
@@ -161,7 +221,7 @@ Create (or update) `app/src/main/res/values/config.xml`:
 
 ## Push Notifications
 
-FCM is used for all push notifications. The app registers an FCM token on first launch and sends it to the backend. Supported notification types:
+FCM is used for all push notifications. The app registers an FCM token on first launch and sends it to the backend. **FCM token must be re-registered on every login and on `onNewToken`.** Supported notification types:
 
 | Event | Recipient |
 |-------|-----------|
@@ -169,6 +229,7 @@ FCM is used for all push notifications. The app registers an FCM token on first 
 | Offer accepted | Driver |
 | Offer expired (10-min timeout) | Driver |
 | Driver account approved by admin | Driver |
+| Driver account rejected by admin | Driver |
 | Ride status changed | Both |
 
 ---

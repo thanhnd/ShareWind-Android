@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Design system from docs/ui-mockups.md -->
+    <color name="primary">#00B4D8</color>
+    <color name="primary_hover">#0096C7</color>
+    <color name="primary_light">#E0FBFC</color>
+    <color name="secondary">#0077B6</color>
+    <color name="accent">#FFB703</color>
+    <color name="success">#2A9D8F</color>
+    <color name="warning">#E9C46A</color>
+    <color name="error">#E76F51</color>
+    <color name="neutral_900">#212529</color>
+    <color name="neutral_600">#6C757D</color>
+    <color name="neutral_300">#DEE2E6</color>
+    <color name="neutral_100">#F8F9FA</color>
+    <color name="background">#FFFFFF</color>
+
+    <!-- Legacy alias -->
+    <color name="blue_primary">@color/primary</color>
+</resources>

@@ -64,11 +64,18 @@ LaunchedEffect(offer.expiresAt) {
 fun RideCardPreview() = ShareWindTheme { RideCard(ride = previewRide) }
 ```
 
-## Use Material 3 Tokens
+## Use Design System Tokens
+
+Colors, typography, and shapes come from [docs/ui-mockups.md](https://github.com/lyhuynh323/ShareWind/blob/main/docs/ui-mockups.md). Use Material 3 theme tokens:
+
 ```kotlin
 // ❌ BAD — hardcoded color
 Text(color = Color(0xFF1A73E8))
 
-// ✅ GOOD
+// ✅ GOOD — theme tokens
 Text(color = MaterialTheme.colorScheme.primary)
+Text(style = MaterialTheme.typography.headlineLarge)
+Surface(shape = MaterialTheme.shapes.large) { ... }
 ```
+
+For semantic colors (Success, Warning, Accent) use `Color.kt`: `Success`, `Warning`, `Accent`.
