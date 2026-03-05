@@ -10,6 +10,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -33,6 +35,7 @@ fun RegisterScreen(
     val name by viewModel.name.collectAsStateWithLifecycle()
     val phone by viewModel.phone.collectAsStateWithLifecycle()
     val password by viewModel.password.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -40,13 +43,17 @@ fun RegisterScreen(
                 is RegisterUiEvent.NavigateToOtp -> onNavigateToOtp(event.phone)
                 is RegisterUiEvent.NavigateToLogin -> onNavigateBack()
                 is RegisterUiEvent.ShowSnackbar -> {
-                    // TODO: Show snackbar
+                    snackbarHostState.showSnackbar(
+                        message = event.message,
+                        duration = SnackbarDuration.Short
+                    )
                 }
             }
         }
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Create Account") },
@@ -79,6 +86,7 @@ fun RegisterContent(
     onAction: (RegisterUiAction) -> Unit
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
 
     Column(
         modifier = modifier
@@ -128,8 +136,12 @@ fun RegisterContent(
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(imageVector = image, contentDescription = null)
+                val description = if (passwordVisible) "Hide password" else "Show password"
+                IconButton(
+                    onClick = { passwordVisible = !passwordVisible },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(imageVector = image, contentDescription = description)
                 }
             }
         )
@@ -137,8 +149,13 @@ fun RegisterContent(
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-            onClick = { onAction(RegisterUiAction.OnRegisterClicked) },
-            modifier = Modifier.fillMaxWidth(),
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onAction(RegisterUiAction.OnRegisterClicked)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp),
             shape = MaterialTheme.shapes.medium,
             contentPadding = PaddingValues(16.dp),
             enabled = uiState !is RegisterUiState.Loading
@@ -150,7 +167,7 @@ fun RegisterContent(
                     strokeWidth = 2.dp
                 )
             } else {
-                Text("Register", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("Register", style = MaterialTheme.typography.labelLarge)
             }
         }
 

@@ -35,12 +35,12 @@ fun HomeContent(uiState: HomeUiState, onRefresh: () -> Unit) { ... }
 ```
 
 ## Loading / Error / Empty States
-Every screen that loads data must handle all four states:
+Every screen that loads data must handle all four states. Use `EmptyStateContent` or `EmptyRidesContent` from `ui/components/` for empty lists:
 ```kotlin
 when (uiState) {
     is Loading -> LoadingIndicator()
     is Success -> RideList(uiState.rides)
-    is Empty   -> EmptyState(message = "No rides available")
+    is Empty   -> EmptyRidesContent(onRefresh = onRefresh)
     is Error   -> ErrorState(message = uiState.message, onRetry = onRefresh)
 }
 ```
@@ -79,3 +79,17 @@ Surface(shape = MaterialTheme.shapes.large) { ... }
 ```
 
 For semantic colors (Success, Warning, Accent) use `Color.kt`: `Success`, `Warning`, `Accent`.
+
+## Dynamic Type / Font Scaling
+
+Use `sp` for all text sizes — they scale with the user's font size preference. Prefer `MaterialTheme.typography` over hardcoded `fontSize`:
+
+```kotlin
+// ✅ GOOD — theme typography scales with system
+Text("Login", style = MaterialTheme.typography.labelLarge)
+
+// ❌ AVOID — hardcoded sp (still scales, but breaks design system)
+Text("Login", fontSize = 16.sp)
+```
+
+Test with Settings → Display → Font size set to "Large" or "Largest" to verify layouts don't break.

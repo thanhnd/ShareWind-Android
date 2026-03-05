@@ -1,0 +1,112 @@
+---
+description: Android best practices for Kotlin/Compose — security, performance, testing, background work
+globs: "**/*.kt", "**/*.xml"
+alwaysApply: false
+---
+
+# Android Best Practices (Kotlin / Jetpack Compose)
+
+Adapted for ShareWind stack: Kotlin, Jetpack Compose, Hilt, Coil, DataStore. See [project-overview.mdc](project-overview.mdc) and [compose-patterns.mdc](compose-patterns.mdc) for architecture and UI patterns.
+
+## Image Loading — Coil
+
+Use **Coil** for all remote images. Never load bitmaps manually or use `BitmapFactory` directly.
+
+```kotlin
+// ✅ GOOD — Coil with placeholder and error
+AsyncImage(
+    model = ImageRequest.Builder(context)
+        .data(imageUrl)
+        .crossfade(true)
+        .build(),
+    contentDescription = null,
+    modifier = Modifier.fillMaxWidth(),
+    placeholder = painterResource(R.drawable.placeholder),
+    error = painterResource(R.drawable.error_placeholder)
+)
+```
+
+## Context Leaks
+
+Avoid holding strong references to `Activity` or `Fragment` in long-lived objects. Use `ApplicationContext` when a long-lived context is needed.
+
+```kotlin
+// ❌ BAD — static Context leaks Activity
+object BadManager {
+    var context: Context? = null
+}
+
+// ✅ GOOD — ApplicationContext for long-lived needs
+class GoodManager(context: Context) {
+    private val appContext = context.applicationContext
+}
+```
+
+## Security
+
+### Network Security Config
+
+Enforce HTTPS. Disable cleartext in production. Use `network_security_config.xml`:
+
+```xml
+<!-- res/xml/network_security_config.xml -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <!-- debug-overrides only for dev if needed -->
+</network-security-config>
+```
+
+Reference in `AndroidManifest.xml`:
+```xml
+<application android:networkSecurityConfig="@xml/network_security_config" ...>
+```
+
+### Content Providers
+
+If using ContentProviders, set `android:exported="false"` unless explicitly required for sharing.
+
+## Lint
+
+Treat lint warnings as errors. Configure in `build.gradle.kts`:
+
+```kotlin
+android {
+    lint {
+        abortOnError = true
+        warningsAsErrors = true
+    }
+}
+```
+
+## Background Work
+
+- **Immediate, short-lived:** Use Kotlin Coroutines (`launch`, `async`) — never block the main thread
+- **Deferrable, guaranteed:** Use **WorkManager** for uploads, sync, or scheduled tasks
+
+```kotlin
+// WorkManager for deferrable work
+val workRequest = OneTimeWorkRequestBuilder<UploadWorker>()
+    .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+    .build()
+WorkManager.getInstance(context).enqueue(workRequest)
+```
+
+## Testing
+
+- **Unit tests (JVM):** ViewModels, use cases, repositories with mocked dependencies. Use `kotlinx-coroutines-test` for `runTest`.
+- **Compose UI tests:** Use `@ComposeTestRule` and `composeTest` for UI flows. Avoid Espresso for Compose screens.
+- **Integration tests:** Use `androidTest` for API or DataStore integration when needed.
+
+```kotlin
+// ViewModel unit test pattern
+@Test
+fun `loadRides returns success`() = runTest {
+    coEvery { repository.getRides() } returns Result.success(emptyList())
+    viewModel.loadRides()
+    assertEquals(UiState.Success(emptyList()), viewModel.uiState.value)
+}
+```

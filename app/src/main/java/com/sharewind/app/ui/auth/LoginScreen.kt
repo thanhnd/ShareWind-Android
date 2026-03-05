@@ -1,7 +1,16 @@
 package com.sharewind.app.ui.auth
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
@@ -10,7 +19,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -23,6 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sharewind.app.ui.components.ShareWindTextField
 import com.sharewind.app.ui.theme.ShareWindTheme
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     onNavigateToHome: () -> Unit,
@@ -32,6 +43,7 @@ fun LoginScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val phone by viewModel.phone.collectAsStateWithLifecycle()
     val password by viewModel.password.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -39,31 +51,41 @@ fun LoginScreen(
                 is LoginUiEvent.NavigateToHome -> onNavigateToHome()
                 is LoginUiEvent.NavigateToRegister -> onNavigateToRegister()
                 is LoginUiEvent.ShowSnackbar -> {
-                    // TODO: Show snackbar using ScaffoldState
+                    snackbarHostState.showSnackbar(
+                        message = event.message,
+                        duration = SnackbarDuration.Short
+                    )
                 }
             }
         }
     }
 
-    LoginContent(
-        uiState = uiState,
-        phone = phone,
-        password = password,
-        onAction = viewModel::onAction
-    )
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { padding ->
+        LoginContent(
+            modifier = Modifier.padding(padding),
+            uiState = uiState,
+            phone = phone,
+            password = password,
+            onAction = viewModel::onAction
+        )
+    }
 }
 
 @Composable
 fun LoginContent(
+    modifier: Modifier = Modifier,
     uiState: LoginUiState,
     phone: String,
     password: String,
     onAction: (LoginUiAction) -> Unit
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
 
     Surface(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
         Column(
@@ -109,8 +131,12 @@ fun LoginContent(
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
                     val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(imageVector = image, contentDescription = null)
+                    val description = if (passwordVisible) "Hide password" else "Show password"
+                    IconButton(
+                        onClick = { passwordVisible = !passwordVisible },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(imageVector = image, contentDescription = description)
                     }
                 }
             )
@@ -118,8 +144,13 @@ fun LoginContent(
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = { onAction(LoginUiAction.OnLoginClicked) },
-                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onAction(LoginUiAction.OnLoginClicked)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp),
                 shape = MaterialTheme.shapes.medium,
                 contentPadding = PaddingValues(16.dp),
                 enabled = uiState !is LoginUiState.Loading
@@ -131,7 +162,7 @@ fun LoginContent(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Login", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text("Login", style = MaterialTheme.typography.labelLarge)
                 }
             }
 
@@ -161,6 +192,7 @@ fun LoginContent(
 fun LoginContentPreview() {
     ShareWindTheme {
         LoginContent(
+            modifier = Modifier,
             uiState = LoginUiState.Idle,
             phone = "",
             password = "",

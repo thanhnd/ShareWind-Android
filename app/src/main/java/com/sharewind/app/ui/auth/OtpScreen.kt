@@ -8,6 +8,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -29,19 +31,24 @@ fun OtpScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val otp by viewModel.otp.collectAsStateWithLifecycle()
     val phone = viewModel.phone
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
                 is OtpUiEvent.NavigateToHome -> onNavigateToHome()
                 is OtpUiEvent.ShowSnackbar -> {
-                    // TODO: Show snackbar
+                    snackbarHostState.showSnackbar(
+                        message = event.message,
+                        duration = SnackbarDuration.Short
+                    )
                 }
             }
         }
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Verify Phone") },
@@ -71,6 +78,8 @@ fun OtpContent(
     phone: String,
     onAction: (OtpUiAction) -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -105,8 +114,13 @@ fun OtpContent(
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-            onClick = { onAction(OtpUiAction.OnVerifyClicked) },
-            modifier = Modifier.fillMaxWidth(),
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onAction(OtpUiAction.OnVerifyClicked)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp),
             shape = MaterialTheme.shapes.medium,
             contentPadding = PaddingValues(16.dp),
             enabled = uiState !is OtpUiState.Loading && otp.length == 6
@@ -118,7 +132,7 @@ fun OtpContent(
                     strokeWidth = 2.dp
                 )
             } else {
-                Text("Verify & Login", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("Verify & Login", style = MaterialTheme.typography.labelLarge)
             }
         }
 
@@ -128,6 +142,15 @@ fun OtpContent(
             Text(
                 text = "Didn't receive code? Resend",
                 color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        if (uiState is OtpUiState.Error) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = uiState.message,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
             )
         }
     }
