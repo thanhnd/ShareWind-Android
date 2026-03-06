@@ -1,0 +1,40 @@
+---
+description: Run related unit tests after code changes
+alwaysApply: true
+---
+
+# Testing — Run Tests After Code Changes
+
+## Principle
+
+**Always run related unit tests after making code changes.** Tests must pass before considering a change complete.
+
+## When to Run Tests
+
+After changing any of the following, run the corresponding tests:
+
+| Changed Area | Run Command |
+|--------------|-------------|
+| ViewModel (`*ViewModel.kt`) | `./gradlew test` or `./gradlew :app:testDebugUnitTest` |
+| Repository, API, domain | `./gradlew test` |
+| Any Kotlin/Java code | `./gradlew test` |
+
+## Workflow
+
+1. Make code changes
+2. Run `./gradlew test` (or `./gradlew :app:testDebugUnitTest` for unit tests only)
+3. Fix any failing tests before finishing
+4. Do not merge or commit with failing tests
+
+## Test File Location
+
+Each ViewModel has a sibling test file in `app/src/test/`:
+```
+app/src/main/.../OtpViewModel.kt  →  app/src/test/.../OtpViewModelTest.kt
+```
+
+## Quick Command
+
+```bash
+./gradlew test
+```
