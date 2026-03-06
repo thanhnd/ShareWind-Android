@@ -16,6 +16,7 @@ import androidx.navigation.navArgument
 import com.sharewind.app.navigation.Screen
 import com.sharewind.app.ui.auth.LoginScreen
 import com.sharewind.app.ui.auth.OtpScreen
+import com.sharewind.app.ui.auth.PhoneScreen
 import com.sharewind.app.ui.auth.RegisterScreen
 import com.sharewind.app.ui.theme.ShareWindTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -51,12 +52,12 @@ fun ShareWindApp() {
                     // TODO: Navigate to Home
                 },
                 onNavigateToRegister = {
-                    navController.navigate(Screen.Register.route)
+                    navController.navigate(Screen.Phone.route)
                 }
             )
         }
-        composable(Screen.Register.route) {
-            RegisterScreen(
+        composable(Screen.Phone.route) {
+            PhoneScreen(
                 onNavigateToOtp = { phone ->
                     navController.navigate(Screen.Otp.createRoute(phone))
                 },
@@ -70,11 +71,24 @@ fun ShareWindApp() {
             arguments = listOf(navArgument("phone") { type = NavType.StringType })
         ) {
             OtpScreen(
+                onNavigateToRegister = { phone ->
+                    navController.navigate(Screen.Register.createRoute(phone))
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        composable(
+            route = Screen.Register.route,
+            arguments = listOf(navArgument("phone") { type = NavType.StringType })
+        ) {
+            RegisterScreen(
                 onNavigateToHome = {
                     // TODO: Navigate to Home
                 },
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navController.popBackStack(Screen.Login.route, inclusive = false)
                 }
             )
         }

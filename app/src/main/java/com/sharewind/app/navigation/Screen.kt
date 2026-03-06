@@ -2,9 +2,12 @@ package com.sharewind.app.navigation
 
 sealed class Screen(val route: String) {
     object Login : Screen("auth/login")
-    object Register : Screen("auth/register")
+    object Phone : Screen("auth/phone")
     object Otp : Screen("auth/otp/{phone}") {
         fun createRoute(phone: String) = "auth/otp/$phone"
+    }
+    object Register : Screen("auth/register/{phone}") {
+        fun createRoute(phone: String) = "auth/register/$phone"
     }
     
     object EndUserHome : Screen("home/eu")

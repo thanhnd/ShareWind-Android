@@ -14,6 +14,7 @@ fun ShareWindTextField(
     onValueChange: (String) -> Unit,
     label: String,
     modifier: Modifier = Modifier,
+    fillMaxWidth: Boolean = true,
     isError: Boolean = false,
     errorMessage: String? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
@@ -24,7 +25,7 @@ fun ShareWindTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(text = label) },
-        modifier = modifier.fillMaxWidth(),
+        modifier = if (fillMaxWidth) modifier.fillMaxWidth() else modifier,
         isError = isError,
         supportingText = if (isError && errorMessage != null) {
             { Text(text = errorMessage) }

@@ -15,7 +15,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sharewind.app.ui.components.ShareWindTextField
@@ -24,19 +23,20 @@ import com.sharewind.app.ui.theme.ShareWindTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OtpScreen(
-    onNavigateToHome: () -> Unit,
+    onNavigateToRegister: (String) -> Unit,
     onNavigateBack: () -> Unit,
     viewModel: OtpViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val otp by viewModel.otp.collectAsStateWithLifecycle()
+    val resendCooldown by viewModel.resendCooldownSeconds.collectAsStateWithLifecycle()
     val phone = viewModel.phone
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
-                is OtpUiEvent.NavigateToHome -> onNavigateToHome()
+                is OtpUiEvent.NavigateToRegister -> onNavigateToRegister(phone)
                 is OtpUiEvent.ShowSnackbar -> {
                     snackbarHostState.showSnackbar(
                         message = event.message,
@@ -65,6 +65,7 @@ fun OtpScreen(
             uiState = uiState,
             otp = otp,
             phone = phone,
+            resendCooldownSeconds = resendCooldown,
             onAction = viewModel::onAction
         )
     }
@@ -76,9 +77,11 @@ fun OtpContent(
     uiState: OtpUiState,
     otp: String,
     phone: String,
+    resendCooldownSeconds: Int = 0,
     onAction: (OtpUiAction) -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
+    val canResend = resendCooldownSeconds == 0
 
     Column(
         modifier = modifier
@@ -91,9 +94,9 @@ fun OtpContent(
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
-        
+
         Spacer(modifier = Modifier.height(8.dp))
-        
+
         Text(
             text = "Enter the 6-digit code sent to\n$phone",
             style = MaterialTheme.typography.bodyMedium,
@@ -108,7 +111,8 @@ fun OtpContent(
             onValueChange = { onAction(OtpUiAction.OnOtpChanged(it)) },
             label = "6-Digit Code",
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-            modifier = Modifier.width(200.dp)
+            modifier = Modifier.width(200.dp),
+            fillMaxWidth = false
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -132,16 +136,27 @@ fun OtpContent(
                     strokeWidth = 2.dp
                 )
             } else {
-                Text("Verify & Login", style = MaterialTheme.typography.labelLarge)
+                Text("Verify & Continue", style = MaterialTheme.typography.labelLarge)
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        TextButton(onClick = { onAction(OtpUiAction.OnResendClicked) }) {
+        TextButton(
+            onClick = { if (canResend) onAction(OtpUiAction.OnResendClicked) },
+            enabled = canResend
+        ) {
             Text(
-                text = "Didn't receive code? Resend",
-                color = MaterialTheme.colorScheme.primary
+                text = if (canResend) {
+                    "Didn't receive code? Resend"
+                } else {
+                    "Resend in ${resendCooldownSeconds}s"
+                },
+                color = if (canResend) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                }
             )
         }
 
@@ -164,6 +179,7 @@ fun OtpContentPreview() {
             uiState = OtpUiState.Idle,
             otp = "",
             phone = "+84 123 456 789",
+            resendCooldownSeconds = 0,
             onAction = {}
         )
     }

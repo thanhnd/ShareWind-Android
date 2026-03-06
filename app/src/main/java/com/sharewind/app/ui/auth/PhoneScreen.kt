@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,8 +12,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -25,22 +21,20 @@ import com.sharewind.app.ui.theme.ShareWindTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RegisterScreen(
-    onNavigateToHome: () -> Unit,
+fun PhoneScreen(
+    onNavigateToOtp: (String) -> Unit,
     onNavigateBack: () -> Unit,
-    viewModel: RegisterViewModel = hiltViewModel()
+    viewModel: PhoneViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val name by viewModel.name.collectAsStateWithLifecycle()
-    val password by viewModel.password.collectAsStateWithLifecycle()
+    val phone by viewModel.phone.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
-                is RegisterUiEvent.NavigateToHome -> onNavigateToHome()
-                is RegisterUiEvent.NavigateToLogin -> onNavigateBack()
-                is RegisterUiEvent.ShowSnackbar -> {
+                is PhoneUiEvent.NavigateToOtp -> onNavigateToOtp(event.phone)
+                is PhoneUiEvent.ShowSnackbar -> {
                     snackbarHostState.showSnackbar(
                         message = event.message,
                         duration = SnackbarDuration.Short
@@ -63,27 +57,22 @@ fun RegisterScreen(
             )
         }
     ) { padding ->
-        RegisterContent(
+        PhoneContent(
             modifier = Modifier.padding(padding),
             uiState = uiState,
-            name = name,
-            phone = viewModel.phone,
-            password = password,
+            phone = phone,
             onAction = viewModel::onAction
         )
     }
 }
 
 @Composable
-fun RegisterContent(
+fun PhoneContent(
     modifier: Modifier = Modifier,
-    uiState: RegisterUiState,
-    name: String,
+    uiState: PhoneUiState,
     phone: String,
-    password: String,
-    onAction: (RegisterUiAction) -> Unit
+    onAction: (PhoneUiAction) -> Unit
 ) {
-    var passwordVisible by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
 
     Column(
@@ -93,7 +82,7 @@ fun RegisterContent(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Join ShareWind",
+            text = "Enter your phone number",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold
         )
@@ -101,47 +90,18 @@ fun RegisterContent(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Enter your details to complete registration",
+            text = "We'll send you a verification code",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
 
-        if (phone.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Phone: $phone",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
-        }
-
         Spacer(modifier = Modifier.height(32.dp))
 
         ShareWindTextField(
-            value = name,
-            onValueChange = { onAction(RegisterUiAction.OnNameChanged(it)) },
-            label = "Full Name",
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        ShareWindTextField(
-            value = password,
-            onValueChange = { onAction(RegisterUiAction.OnPasswordChanged(it)) },
-            label = "Password",
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                val description = if (passwordVisible) "Hide password" else "Show password"
-                IconButton(
-                    onClick = { passwordVisible = !passwordVisible },
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(imageVector = image, contentDescription = description)
-                }
-            }
+            value = phone,
+            onValueChange = { onAction(PhoneUiAction.OnPhoneChanged(it)) },
+            label = "Phone Number",
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -149,36 +109,27 @@ fun RegisterContent(
         Button(
             onClick = {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onAction(RegisterUiAction.OnRegisterClicked)
+                onAction(PhoneUiAction.OnSendOtpClicked)
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 48.dp),
             shape = MaterialTheme.shapes.medium,
             contentPadding = PaddingValues(16.dp),
-            enabled = uiState !is RegisterUiState.Loading
+            enabled = uiState !is PhoneUiState.Loading
         ) {
-            if (uiState is RegisterUiState.Loading) {
+            if (uiState is PhoneUiState.Loading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(24.dp),
                     color = MaterialTheme.colorScheme.onPrimary,
                     strokeWidth = 2.dp
                 )
             } else {
-                Text("Register", style = MaterialTheme.typography.labelLarge)
+                Text("Send OTP", style = MaterialTheme.typography.labelLarge)
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        TextButton(onClick = { onAction(RegisterUiAction.OnLoginClicked) }) {
-            Text(
-                text = "Already have an account? Login",
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-
-        if (uiState is RegisterUiState.Error) {
+        if (uiState is PhoneUiState.Error) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = uiState.message,
@@ -191,13 +142,11 @@ fun RegisterContent(
 
 @Preview(showBackground = true)
 @Composable
-fun RegisterContentPreview() {
+fun PhoneContentPreview() {
     ShareWindTheme {
-        RegisterContent(
-            uiState = RegisterUiState.Idle,
-            name = "",
-            phone = "+84901234567",
-            password = "",
+        PhoneContent(
+            uiState = PhoneUiState.Idle,
+            phone = "",
             onAction = {}
         )
     }
